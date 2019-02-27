@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION=1.0.2q
+VERSION=1.0.2r
 export ANDROID_NDK_ROOT=~/android/android-ndk-r10e
 export ANDROID_API=android-21
 
