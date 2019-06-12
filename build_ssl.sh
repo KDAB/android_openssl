@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION=1.1.1b
+VERSION=1.1.1c
 export ANDROID_NDK_HOME=~/android/ndk-bundle
 ANDROID_API=21
 
