@@ -43,10 +43,10 @@ do
 
     ./Configure shared android-${arch} -D__ANDROID_API__=${ANDROID_API} || exit 1
     make depend
-    make -j$(nproc) SHLIB_VERSION_NUMBER= SHLIB_EXT=.so build_libs || exit 1
-    llvm-strip -strip-all libcrypto.so
-    llvm-strip -strip-all libssl.so
-    cp libcrypto.so ../$arch
-    cp libssl.so ../$arch
+    make -j$(nproc) SHLIB_VERSION_NUMBER= SHLIB_EXT=_1_1.so build_libs || exit 1
+    llvm-strip -strip-all libcrypto_1_1.so
+    llvm-strip -strip-all libssl_1_1.so
+    cp libcrypto_1_1.so ../$arch
+    cp libssl_1_1.so ../$arch
     cd ..
 done
