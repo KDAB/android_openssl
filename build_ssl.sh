@@ -8,6 +8,12 @@ if [ ! -f "openssl-$VERSION.tar.gz" ]; then
     wget https://www.openssl.org/source/openssl-$VERSION.tar.gz
 fi
 
+rm -fr static
+mkdir -p static/lib
+mkdir -p static/include
+
+declare -A qt_architectures=( ["x86_64"]="x86_64" ["x86"]="x86" ["arm64"]="arm64-v8a" ["arm"]="armeabi-v7a" )
+
 for arch in "x86_64" "x86" "arm64" "arm"
 do
     rm -fr $arch
@@ -48,5 +54,10 @@ do
     llvm-strip -strip-all libssl_1_1.so
     cp libcrypto_1_1.so ../$arch
     cp libssl_1_1.so ../$arch
+    mv libcrypto.a ../static/lib/libcrypto_${qt_architectures[$arch]}.a
+    mv libssl.a ../static/lib/libssl_${qt_architectures[$arch]}.a
     cd ..
 done
+
+cp -a openssl-$VERSION/include/openssl static/include
+rm -fr openssl-$VERSION

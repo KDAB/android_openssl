@@ -13,3 +13,5 @@ To add openssl in your qmake project just add:
 include(<path/to/android_openssl/openssl.pri)
 ```
 to your `.pro` file
+
+There is also a `static` folder which contains the openssl static libs prefixed with the abi. These libs are useful to build Qt **5.14.1+**.
