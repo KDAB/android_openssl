@@ -1,8 +1,7 @@
 #!/bin/bash
 
-VERSION=1.0.2r
+VERSION=1.0.2u
 export ANDROID_NDK_ROOT=~/android/android-ndk-r10e
-export ANDROID_API=android-21
 
 if [ ! -f "openssl-$VERSION.tar.gz" ]; then
     wget https://www.openssl.org/source/openssl-$VERSION.tar.gz
@@ -21,18 +20,21 @@ do
             export ANDROID_PLATFORM=arch-arm
             export ANDROID_EABI="arm-linux-androideabi-4.9"
             export CROSS_COMPILE="arm-linux-androideabi-"
+            export ANDROID_API=android-9
             CONF_PARAM=android
             ;;
         aarch64)
             export ANDROID_PLATFORM=arch-arm64
             export ANDROID_EABI="aarch64-linux-android-4.9"
             export CROSS_COMPILE="aarch64-linux-android-"
+            export ANDROID_API=android-21
             CONF_PARAM=android
             ;;
         x86)
             export ANDROID_PLATFORM=arch-x86
             export ANDROID_EABI="x86-4.9"
             export CROSS_COMPILE="i686-linux-android-"
+            export ANDROID_API=android-9
             CONF_PARAM=android-x86
             ;;
 #         x86_64)
@@ -40,6 +42,7 @@ do
 #             export ANDROID_ARCH=arch-x86_64
 #             export ARCH=x86_64
 #             export CROSS_COMPILE=x86_64-linux-android-
+#             export ANDROID_API=android-21
 #             CONF_PARAM="linux-generic64 no-asm -m64 -no-ssl2 -no-ssl3 -no-comp -no-hw --cross-compile-prefix=$CROSS_COMPILE"
 #             ;;
     esac
