@@ -7,8 +7,8 @@ if (lessThan(QT_VERSION, 5.12.3)) {
 
     contains(ANDROID_TARGET_ARCH, arm64-v8a) {
         ANDROID_EXTRA_LIBS += \
-            $$PWD/Qt-5.12.3/aarch64/libcrypto.so \
-            $$PWD/Qt-5.12.3/aarch64/libssl.so
+            $$PWD/Qt-5.12.3/arm64/libcrypto.so \
+            $$PWD/Qt-5.12.3/arm64/libssl.so
     }
 
     contains(ANDROID_TARGET_ARCH, x86) {

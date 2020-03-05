@@ -9,8 +9,8 @@ if (QT_VERSION LESS 5.12.3)
 
     if (ANDROID_TARGET_ARCH STREQUAL "arm64-v8a")
         set(ANDROID_EXTRA_LIBS
-            ${CMAKE_CURRENT_LIST_DIR}/Qt-5.12.3/aarch64/libcrypto.so
-            ${CMAKE_CURRENT_LIST_DIR}/Qt-5.12.3/aarch64/libssl.so
+            ${CMAKE_CURRENT_LIST_DIR}/Qt-5.12.3/arm64/libcrypto.so
+            ${CMAKE_CURRENT_LIST_DIR}/Qt-5.12.3/arm64/libssl.so
         CACHE INTERNAL "")
     endif()
 
