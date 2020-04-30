@@ -17,7 +17,7 @@ To add OpenSSL in your QMake project, append the following to your `.pro` projec
 android: include(<path/to/android_openssl/openssl.pri)
 ```
 
-To add OpenSSL in your CMake project, append the following to your project's `CMakeLists.txt` file:
+To add OpenSSL in your CMake project, append the following to your project's `CMakeLists.txt` file, anywhere before the find_package() call for Qt5 modules:
 
 ```
 if (ANDROID)
