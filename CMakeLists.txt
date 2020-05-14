@@ -5,7 +5,7 @@ else()
 endif()
 
 
-if (QT_VERSION LESS 5.12.3)
+if (QT_VERSION LESS 5.12.4)
     message(QT_VERSION)
     if (ANDROID_TARGET_ARCH STREQUAL "armeabi-v7a")
         set(ANDROID_EXTRA_LIBS
