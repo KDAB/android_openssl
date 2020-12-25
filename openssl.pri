@@ -2,7 +2,7 @@
     CONFIG(release, debug|release): SSL_PATH = $$PWD
                             else: SSL_PATH = $$PWD/no-asm
 
-    if (lessThan(QT_VERSION, 5.12.4)) {
+    if (!versionAtLeast(QT_VERSION, 5.12.4)) {
         contains(ANDROID_TARGET_ARCH, armeabi-v7a) {
             ANDROID_EXTRA_LIBS += \
                 $$SSL_PATH/Qt-5.12.3/arm/libcrypto.so \
