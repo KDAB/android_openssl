@@ -4,7 +4,7 @@ BUILD_DIR=$(pwd)
 DEFAULT_PATH=$PATH
 
 declare -a params=( 'no-asm' '' )
-declare -A ssl_versions=( ["1.1.1l"]=~/android/ndk/21.4.7075529 ["1.0.2u"]=~/android/android-ndk-r10e )
+declare -A ssl_versions=( ["1.1.1n"]=~/android/ndk/21.4.7075529 ["1.0.2u"]=~/android/android-ndk-r10e )
 
 # Qt up to Qt-5.12.3 are using openssl 1.0.x
 # Qt 5.12.4 and 5.13.0 are using 1.1.x without any suffix, this will make he andorid linker to load system libs on Andorid 5 which will make Qt SSL support unusable in this combination
