@@ -100,3 +100,41 @@ else()
         endif()
     endif()
 endif()
+
+#Added Qt6 support via QT_ANDROID_EXTRA_LIBS
+# With the recent update and the introduction of the QT_ANDROID_EXTRA_LIBS variable, this modification is necessary to copy the openssl files to the required path in Qt6.
+# https://doc.qt.io/qt-6/cmake-target-property-qt-android-extra-libs.html
+if(QT_VERSION GREATER 6.0.0)
+    set_property(TARGET ${PROJECT_NAME} PROPERTY QT_ANDROID_EXTRA_LIBS
+        ${SSL_ROOT_PATH}/latest/arm64/libcrypto_1_1.so
+        ${SSL_ROOT_PATH}/latest/arm64/libssl_1_1.so
+    )
+
+    if (ANDROID_TARGET_ARCH STREQUAL "armeabi-v7a")
+        set_property(TARGET ${PROJECT_NAME} PROPERTY QT_ANDROID_EXTRA_LIBS
+            ${SSL_ROOT_PATH}/latest/arm/libcrypto_1_1.so
+            ${SSL_ROOT_PATH}/latest/arm/libssl_1_1.so
+        )
+    endif()
+
+    if (ANDROID_TARGET_ARCH STREQUAL "arm64-v8a")
+        set_property(TARGET ${PROJECT_NAME} PROPERTY QT_ANDROID_EXTRA_LIBS
+            ${SSL_ROOT_PATH}/latest/arm64/libcrypto_1_1.so
+            ${SSL_ROOT_PATH}/latest/arm64/libssl_1_1.so
+        )
+    endif()
+
+    if (ANDROID_TARGET_ARCH STREQUAL "x86")
+        set_property(TARGET ${PROJECT_NAME} PROPERTY QT_ANDROID_EXTRA_LIBS
+            ${SSL_ROOT_PATH}/latest/x86/libcrypto_1_1.so
+            ${SSL_ROOT_PATH}/latest/x86/libssl_1_1.so
+        )
+    endif()
+
+    if (ANDROID_TARGET_ARCH STREQUAL "x86_64")
+        set_property(TARGET ${PROJECT_NAME} PROPERTY QT_ANDROID_EXTRA_LIBS
+            ${SSL_ROOT_PATH}/latest/x86_64/libcrypto_1_1.so
+            ${SSL_ROOT_PATH}/latest/x86_64/libssl_1_1.so
+        )
+    endif()
+endif()
