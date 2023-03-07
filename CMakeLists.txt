@@ -81,6 +81,7 @@ else()
                 ${SSL_ROOT_PATH}/latest/x86_64/libcrypto_3.so
                 ${SSL_ROOT_PATH}/latest/x86_64/libssl_3.so
             CACHE INTERNAL "")
+            endif()
         else()
             if (NOT (QT_VERSION LESS 5.14.0))
                 message(${SSL_ROOT_PATH})
