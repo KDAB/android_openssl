@@ -55,13 +55,29 @@ else()
     else()
         if(NOT (QT_VERSION LESS 6.5.0))
             message(${SSL_ROOT_PATH})
-            set(ANDROID_EXTRA_LIBS
-                ${SSL_ROOT_PATH}/latest/arm/libcrypto_3.so
-                ${SSL_ROOT_PATH}/latest/arm/libssl_3.so
-                ${SSL_ROOT_PATH}/latest/arm64/libcrypto_3.so
-                ${SSL_ROOT_PATH}/latest/arm64/libssl_3.so
-                ${SSL_ROOT_PATH}/latest/x86/libcrypto_3.so
-                ${SSL_ROOT_PATH}/latest/x86/libssl_3.so
+            if (CMAKE_ANDROID_ARCH_ABI STREQUAL "armeabi-v7a")
+                set(ANDROID_EXTRA_LIBS
+                    ${SSL_ROOT_PATH}/latest/arm/libcrypto_3.so
+                    ${SSL_ROOT_PATH}/latest/arm/libssl_3.so
+                CACHE INTERNAL "")
+            endif()
+
+            if (CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a")
+                set(ANDROID_EXTRA_LIBS
+                    ${SSL_ROOT_PATH}/latest/arm64/libcrypto_3.so
+                    ${SSL_ROOT_PATH}/latest/arm64/libssl_3.so
+                CACHE INTERNAL "")
+            endif()
+
+            if (CMAKE_ANDROID_ARCH_ABI STREQUAL "x86")
+                set(ANDROID_EXTRA_LIBS
+                    ${SSL_ROOT_PATH}/latest/x86/libcrypto_3.so
+                    ${SSL_ROOT_PATH}/latest/x86/libssl_3.so
+                CACHE INTERNAL "")
+            endif()
+
+            if (CMAKE_ANDROID_ARCH_ABI STREQUAL "x86_64")
+                set(ANDROID_EXTRA_LIBS
                 ${SSL_ROOT_PATH}/latest/x86_64/libcrypto_3.so
                 ${SSL_ROOT_PATH}/latest/x86_64/libssl_3.so
             CACHE INTERNAL "")
