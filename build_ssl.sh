@@ -12,8 +12,8 @@ declare -A ssl_versions_output_dir=(
     ["ssl_3"]="3.1*"
 )
 declare -A ssl_versions_ndk=(
-    ["1.1.1t"]="$HOME/android/ndk/25.1.8937393"
-    ["3.1.0"]="$HOME/android/ndk/25.1.8937393"
+    ["1.1.1u"]="$HOME/android/ndk/21.4.7075529"
+    ["3.1.1"]="$HOME/android/ndk/25.2.9519653"
 )
 declare -A architectures=(
     ["x86_64"]="x86_64"
@@ -62,10 +62,10 @@ configure_ssl() {
     done
 
     case $ssl_version in
-    1.1.1t)
+    1.1.1*)
         ANDROID_API=21
         ;;
-    3.1.0)
+    3.1.*)
         ANDROID_API=23
         ;;
     esac
