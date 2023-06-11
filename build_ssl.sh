@@ -9,7 +9,7 @@ declare -a params=(
 )
 declare -A ssl_versions_output_dir=(
     ["ssl_1.1"]="1.1*"
-    ["ssl_3"]="3.1*"
+    ["ssl_3"]="3*"
 )
 declare -A ssl_versions_ndk=(
     ["1.1.1u"]="$HOME/android/ndk/21.4.7075529"
@@ -46,8 +46,9 @@ configure_ssl() {
     ndk=$1
     param=$2
     ssl_version=$3
-    arch=$4
-    log_file=$5
+    version_out_dir=$4
+    arch=$5
+    log_file=$6
 
     export ANDROID_NDK_HOME="${ndk}"
     export ANDROID_NDK_ROOT="${ndk}"
@@ -61,11 +62,11 @@ configure_ssl() {
         fi
     done
 
-    case $ssl_version in
-    1.1.1*)
+    case $version_out_dir in
+    ssl_1.1)
         ANDROID_API=21
         ;;
-    3.1.*)
+    ssl_3)
         ANDROID_API=23
         ;;
     esac
@@ -80,7 +81,7 @@ configure_ssl() {
 
 build_ssl_1_1() {
     # Qt up to 6.4 is using OpenSSL 1.1.x but the library is suffixed with _1_1.so
-    version=$1
+    version_out_dir=$1
     qt_arch=$2
     log_file=$3
 
@@ -88,13 +89,13 @@ build_ssl_1_1() {
     make -j$(nproc) SHLIB_VERSION_NUMBER= SHLIB_EXT=_1_1.so build_libs 2>&1 1>>${log_file} | tee -a ${log_file} || exit 1
     llvm-strip --strip-all libcrypto_1_1.so
     llvm-strip --strip-all libssl_1_1.so
-    cp libcrypto_1_1.so libssl_1_1.so "../$version/$qt_arch" || exit 1
-    cp libcrypto.a libssl.a "../$version/$qt_arch" || exit 1
+    cp libcrypto_1_1.so libssl_1_1.so "../$version_out_dir/$qt_arch" || exit 1
+    cp libcrypto.a libssl.a "../$version_out_dir/$qt_arch" || exit 1
 }
 
 build_ssl_3() {
     # Qt 6.5.0+ is using OpenSSL 3.1.x but the library is suffixed with _3.so
-    version=$1
+    version_out_dir=$1
     qt_arch=$2
     log_file=$3
 
@@ -103,7 +104,7 @@ build_ssl_3() {
     llvm-strip --strip-all libcrypto.so
     llvm-strip --strip-all libssl.so
 
-    out_path="../$version/$qt_arch"
+    out_path="../$version_out_dir/$qt_arch"
     cp libcrypto.a libssl.a "${out_path}" || exit 1
     cp libcrypto.so "${out_path}/libcrypto_3.so" || exit 1
     cp libssl.so "${out_path}/libssl_3.so" || exit 1
@@ -122,35 +123,35 @@ for param in "${params[@]}"; do
     for ssl_version in "${!ssl_versions_ndk[@]}"; do
         download_ssl_version $ssl_version
 
-        for version in "${!ssl_versions_output_dir[@]}"; do
-            if [[ $ssl_version != ${ssl_versions_output_dir[$version]} ]]; then
+        for version_out_dir in "${!ssl_versions_output_dir[@]}"; do
+            if [[ $ssl_version != ${ssl_versions_output_dir[$version_out_dir]} ]]; then
                 continue
             fi
-            echo "Build $ssl_version for $version"
+            echo "Build $ssl_version"
             for arch in "${!architectures[@]}"; do
                 qt_arch="${architectures[$arch]}"
-                extract_package $qt_arch $version $ssl_version
+                extract_package $qt_arch $version_out_dir $ssl_version
                 pushd "openssl-$ssl_version" || exit 1
 
                 log_file="build_${arch}_${ssl_version}.log"
                 ndk="${ssl_versions_ndk[$ssl_version]}"
-                configure_ssl "${ndk}" "${param}" ${ssl_version} ${arch} ${log_file}
+                configure_ssl "${ndk}" "${param}" ${ssl_version} ${version_out_dir} ${arch} ${log_file}
 
-                case $version in
+                case $version_out_dir in
                     ssl_1.1)
-                        build_ssl_1_1 ${version} ${qt_arch} ${log_file}
+                        build_ssl_1_1 ${version_out_dir} ${qt_arch} ${log_file}
                         ;;
                     ssl_3)
-                        build_ssl_3 ${version} ${qt_arch} ${log_file}
+                        build_ssl_3 ${version_out_dir} ${qt_arch} ${log_file}
                         ;;
                     *)
-                        echo "Unhandled OpenSSL version $version"
+                        echo "Unhandled OpenSSL version $version_out_dir"
                         exit 1
                         ;;
                 esac
 
-                if [ "$arch" == "arm64" ] && [ ! -d "../$version/include/openssl" ]; then
-                    cp -a include "../$version" || exit 1
+                if [ "$arch" == "arm64" ] && [ ! -d "../$version_out_dir/include/openssl" ]; then
+                    cp -a include "../$version_out_dir" || exit 1
                 fi
                 popd
             done
