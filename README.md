@@ -22,3 +22,18 @@ if (ANDROID)
     include(<path/to/android_openssl/CMakeLists.txt)
 endif()
 ```
+
+## Build Script
+
+The build script `build_ssl.sh` can be used to rebuild the OpenSSL libraries. Since specific
+versions might depend or work better with specific NDK versions, the OpenSSL<==>NDK version
+combinations are defined in the script. Before running the script, check that the NDK paths
+are correct for your environment.
+
+### Build Prerequisites
+
+Both Linux, macOS need `patchelf` command when building for OpenSSL 3+.
+
+Additionally, for macOS you need:
+- `bash` shell version 4+ is required
+- `wget` command
