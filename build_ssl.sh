@@ -1,5 +1,11 @@
 #!/bin/bash
 
+## Prerequisites
+## On both Linux, macOS: 'patchelf' command is needed for OpenSSL 3+
+## On macOS:
+##   - bash shell version 4+ is required
+##   - wget command
+
 BUILD_DIR=$(pwd)
 
 # Comment out the line for any configuration you don't want to build
