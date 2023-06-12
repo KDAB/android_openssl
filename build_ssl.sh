@@ -109,9 +109,11 @@ build_ssl_3() {
     cp libcrypto.so "${out_path}/libcrypto_3.so" || exit 1
     cp libssl.so "${out_path}/libssl_3.so" || exit 1
 
-    patchelf --set-soname "${out_path}/libcrypto_3.so" "${out_path}/libcrypto_3.so" || exit 1
-    patchelf --set-soname "${out_path}/libssl_3.so" "${out_path}/libssl_3.so" || exit 1
-    patchelf --replace-needed "${out_path}/libcrypto.so" "${out_path}/libcrypto_3.so" "${out_path}/libssl_3.so" || exit 1
+    pushd ${out_path} || exit 1
+    patchelf --set-soname libcrypto_3.so libcrypto_3.so || exit 1
+    patchelf --set-soname libssl_3.so libssl_3.so || exit 1
+    patchelf --replace-needed libcrypto.so libcrypto_3.so libssl_3.so || exit 1
+    popd
 }
 
 for param in "${params[@]}"; do
