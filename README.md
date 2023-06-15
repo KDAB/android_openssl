@@ -8,13 +8,14 @@ The following directories are available
 * `ssl_1_1`: for Qt Qt 5.12.5+, 5.13.1+, 5.14.0+, 5.15.0+, Qt 6.x.x up to 6.4.x
 
 ## How to use it
-
+### QMake based projects
 To add OpenSSL to your QMake project, append the following to your `.pro` project file:
 
 ```
 android: include(<path/to/android_openssl/openssl.pri)
 ```
 
+### CMake based projects
 To add OpenSSL to your CMake project, append the following to your project's `CMakeLists.txt` file:
 
 ```
