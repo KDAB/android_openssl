@@ -1,4 +1,4 @@
-function(add_android_openssl_libraries_to)
+function(add_android_openssl_libraries)
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         set (ssl_root_path ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/no-asm)
     else()
