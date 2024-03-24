@@ -99,6 +99,7 @@ build_ssl_1_1() {
     cp libcrypto.a libssl.a "../$version_out_dir/$qt_arch" || exit 1
     ln -s "../$version_out_dir/$qt_arch/libcrypto_1_1.so" "../$version_out_dir/$qt_arch/libcrypto.so"
     ln -s "../$version_out_dir/$qt_arch/libssl_1_1.so" "../$version_out_dir/$qt_arch/libssl.so"
+    ln -s "../$version_out_dir/include" "../$version_out_dir/$qt_arch/include"
 }
 
 build_ssl_3() {
@@ -118,6 +119,7 @@ build_ssl_3() {
     cp libssl.so "${out_path}/libssl_3.so" || exit 1
     ln -s "${out_path}/libcrypto_3.so" "${out_path}/libcrypto.so"
     ln -s "${out_path}/libssl_3.so" "${out_path}/libssl.so"
+    ln -s "../$version_out_dir/include" "../$version_out_dir/$qt_arch/include"
 
     pushd ${out_path} || exit 1
     patchelf --set-soname libcrypto_3.so libcrypto_3.so || exit 1
@@ -149,6 +151,10 @@ for param in "${params[@]}"; do
                 ndk="${ssl_versions_ndk[$ssl_version]}"
                 configure_ssl "${ndk}" "${param}" ${ssl_version} ${version_out_dir} ${arch} ${log_file}
 
+                if [ "$arch" == "arm64" ] && [ ! -d "../$version_out_dir/include/openssl" ]; then
+                    cp -a include "../$version_out_dir" || exit 1
+                fi
+
                 case $version_out_dir in
                     ssl_1.1)
                         build_ssl_1_1 ${version_out_dir} ${qt_arch} ${log_file}
@@ -162,9 +168,7 @@ for param in "${params[@]}"; do
                         ;;
                 esac
 
-                if [ "$arch" == "arm64" ] && [ ! -d "../$version_out_dir/include/openssl" ]; then
-                    cp -a include "../$version_out_dir" || exit 1
-                fi
+                
                 popd
             done
         done
