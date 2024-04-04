@@ -2,7 +2,8 @@
     CONFIG(release, debug|release): SSL_PATH = $$PWD
                               else: SSL_PATH = $$PWD/no-asm
 
-    if (versionAtLeast(QT_VERSION, 6.5.0)) {
+    if (versionAtLeast(QT_VERSION, 6.5.0) | if(versionAtLeast(QT_VERSION, 5.15.8) : versionAtMost(QT_VERSION, 6.0.0))) {
+        message(Using OpenSSL v3)
         ANDROID_EXTRA_LIBS += \
             $$SSL_PATH/ssl_3/arm64-v8a/libcrypto_3.so \
             $$SSL_PATH/ssl_3/arm64-v8a/libssl_3.so \
@@ -13,6 +14,7 @@
             $$SSL_PATH/ssl_3/x86_64/libcrypto_3.so \
             $$SSL_PATH/ssl_3/x86_64/libssl_3.so
     } else {
+        warning("Using OpenSSL v1.1, it was deprecated")
         ANDROID_EXTRA_LIBS += \
             $$SSL_PATH/ssl_1.1/arm64-v8a/libcrypto_1_1.so \
             $$SSL_PATH/ssl_1.1/arm64-v8a/libssl_1_1.so \
