@@ -97,9 +97,9 @@ build_ssl_1_1() {
     llvm-strip --strip-all libssl_1_1.so
     cp libcrypto_1_1.so libssl_1_1.so "../$version_out_dir/$qt_arch" || exit 1
     cp libcrypto.a libssl.a "../$version_out_dir/$qt_arch" || exit 1
-    ln -s "../$version_out_dir/$qt_arch/libcrypto_1_1.so" "../$version_out_dir/$qt_arch/libcrypto.so"
-    ln -s "../$version_out_dir/$qt_arch/libssl_1_1.so" "../$version_out_dir/$qt_arch/libssl.so"
-    ln -s "../$version_out_dir/include" "../$version_out_dir/$qt_arch/include"
+    ln -s "libcrypto_1_1.so" "../$version_out_dir/$qt_arch/libcrypto.so"
+    ln -s "libssl_1_1.so" "../$version_out_dir/$qt_arch/libssl.so"
+    ln -s "../../$version_out_dir/include" "../$version_out_dir/$qt_arch/include"
 }
 
 build_ssl_3() {
@@ -117,9 +117,9 @@ build_ssl_3() {
     cp libcrypto.a libssl.a "${out_path}" || exit 1
     cp libcrypto.so "${out_path}/libcrypto_3.so" || exit 1
     cp libssl.so "${out_path}/libssl_3.so" || exit 1
-    ln -s "${out_path}/libcrypto_3.so" "${out_path}/libcrypto.so"
-    ln -s "${out_path}/libssl_3.so" "${out_path}/libssl.so"
-    ln -s "../$version_out_dir/include" "../$version_out_dir/$qt_arch/include"
+    ln -s "libcrypto_3.so" "${out_path}/libcrypto.so"
+    ln -s "libssl_3.so" "${out_path}/libssl.so"
+    ln -s "../../$version_out_dir/include" "../$version_out_dir/$qt_arch/include"
 
     pushd ${out_path} || exit 1
     patchelf --set-soname libcrypto_3.so libcrypto_3.so || exit 1
