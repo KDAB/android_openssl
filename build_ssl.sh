@@ -1,63 +1,114 @@
-#!/bin/bash
+#!/bin/bash -x
 
 ## Prerequisites
-## On both Linux, macOS: 'patchelf' command is needed for OpenSSL 3+
-## On macOS:
-##   - bash shell version 4+ is required
-##   - wget command
+## The script supports builds from Linux and macOS.
+## The 'patchelf' command is required for OpenSSL 3.
+## set BUILD_DIR and OUTPUT_ROOT variables to use custom build and output paths.
+## Set NDK_ROOT_PREFIX to use custom Android NDK root path that contains various
+## NDK versions.
 
-BUILD_DIR=$(pwd)
+set -eo pipefail
 
-# Comment out the line for any configuration you don't want to build
-declare -a params=(
-    ''
-    'no-asm'
-)
-declare -A ssl_versions_output_dir=(
-    ["ssl_1.1"]="1.1*"
-    ["ssl_3"]="3*"
-)
-declare -A ssl_versions_ndk=(
-    ["1.1.1u"]="$HOME/android/ndk/21.4.7075529"
-    ["3.1.1"]="$HOME/android/ndk/25.2.9519653"
-)
-declare -A architectures=(
-    ["x86_64"]="x86_64"
-    ["x86"]="x86"
-    ["arm64"]="arm64-v8a"
-    ["arm"]="armeabi-v7a"
-)
+[ -n "$OUTPUT_ROOT" ] || OUTPUT_ROOT="$(pwd)"
+[ -n "$BUILD_DIR" ] || BUILD_DIR="$(pwd)/build"
+
+# Set Android NDK path prefix under the Android SDK
+if [ -z "$NDK_ROOT_PREFIX" ]; then
+    if [[ "$(uname)" == "Darwin" ]]; then
+        NDK_ROOT_PREFIX="$HOME/Library/Android/sdk/ndk"
+    else
+        NDK_ROOT_PREFIX="$HOME/Android/Sdk/ndk"
+    fi
+fi
+
+ssl_versions=("1.1.1u" "3.1.1")
+architectures=("arm64" "arm" "x86_64" "x86")
+build_types=('' 'no-asm')
+
+get_qt_arch() {
+    # takes OpenSSL arch as argument
+    case $1 in
+    arm64)
+        echo "arm64-v8a"
+        ;;
+    arm)
+        echo "armeabi-v7a"
+        ;;
+    *)
+        echo $1
+        ;;
+    esac
+}
+
+get_ssl_build_dir() {
+    # takes OpenSSL version as argument
+    case $1 in
+    1.1.*)
+        echo "ssl_1.1"
+        ;;
+    3.*)
+        echo "ssl_3"
+        ;;
+    *)
+        echo $1
+        ;;
+    esac
+}
+
+get_ssl_ndk_version() {
+    # takes OpenSSL version as argument
+    case $1 in
+    1.1.*)
+        echo "21.4.7075529"
+        ;;
+    3.*)
+        echo "25.2.9519653"
+        ;;
+    *)
+        echo $1
+        ;;
+    esac
+}
 
 download_ssl_version() {
     ssl_version=$1
-    echo "Downloading OpenSSL $ssl_version"
-    if [ ! -f "openssl-$ssl_version.tar.gz" ]; then
-        wget -q --show-progress "https://www.openssl.org/source/openssl-$ssl_version.tar.gz"
+    download_dir=$2
+
+    ssl_filename="openssl-$ssl_version.tar.gz"
+    echo "Downloading OpenSSL $ssl_filename"
+    if [ ! -f "$ssl_filename" ]; then
+        curl -sfL -o "$download_dir/$ssl_filename" "https://www.openssl.org/source/$ssl_filename" \
+            || (echo "Downloading sources failed!"; exit 1)
     fi
 }
 
 extract_package() {
-    qt_arch=$1
-    version=$2
-    ssl_version=$3
+    ssl_version=$1
+    src_path=$2
+    output_dir=$3
 
-    echo "Extracting OpenSSL $ssl_version under $(pwd)"
-    rm -fr "$qt_arch" "$version/$qt_arch"
-    mkdir -p "$version/$qt_arch" || exit 1
+    echo "Extracting OpenSSL $ssl_version under $output_dir"
     rm -fr "openssl-$ssl_version"
-    tar xf "openssl-$ssl_version.tar.gz" || exit 1
+    tar xf "$src_path/openssl-$ssl_version.tar.gz" || exit 1
 }
 
 configure_ssl() {
-    ndk=$1
-    param=$2
-    ssl_version=$3
-    version_out_dir=$4
-    arch=$5
+    ssl_version=$1
+    arch=$2
+    ndk=$3
+    build_type=$4
+    output_dir=$5
     log_file=$6
 
-    export ANDROID_NDK_HOME="${ndk}"
-    export ANDROID_NDK_ROOT="${ndk}"
+    nkd_path="$NDK_ROOT_PREFIX/$ndk"
+
+    if [ ! -e "$nkd_path" ]; then
+        echo "NDK path $nkd_path does not exist"
+        exit 1
+    fi
+
+    export ANDROID_NDK_ROOT="$nkd_path"
+    export ANDROID_NDK_HOME="$nkd_path"
 
     declare hosts=("linux-x86_64" "linux-x86" "darwin-x86_64" "darwin-x86")
     for host in "${hosts[@]}"; do
@@ -68,7 +119,7 @@ configure_ssl() {
         fi
     done
 
-    case $version_out_dir in
+    case $output_dir in
     ssl_1.1)
         ANDROID_API=21
         ;;
@@ -77,9 +128,10 @@ configure_ssl() {
         ;;
     esac
 
-    config_params=( "${param}" "shared" "android-${arch}"
+    config_params=( "${build_type}" "shared" "android-${arch}"
                     "-U__ANDROID_API__" "-D__ANDROID_API__=${ANDROID_API}" )
-    echo "Configuring OpenSSL $ssl_version with parameters: ${config_params[@]}"
+    echo "Configuring OpenSSL $ssl_version with NDK $ndk"
+    echo "Configure parameters: ${config_params[@]}"
 
     ./Configure "${config_params[@]}" 2>&1 1>${log_file} | tee -a ${log_file} || exit 1
     make depend
@@ -87,99 +139,120 @@ configure_ssl() {
 
 build_ssl_1_1() {
     # Qt up to 6.4 is using OpenSSL 1.1.x but the library is suffixed with _1_1.so
-    version_out_dir=$1
-    qt_arch=$2
-    log_file=$3
+    output_dir=$1
+    log_file=$2
 
     echo "Building..."
-    make -j$(nproc) SHLIB_VERSION_NUMBER= SHLIB_EXT=_1_1.so build_libs 2>&1 1>>${log_file} | tee -a ${log_file} || exit 1
-    llvm-strip --strip-all libcrypto_1_1.so
-    llvm-strip --strip-all libssl_1_1.so
-    cp libcrypto_1_1.so libssl_1_1.so "../$version_out_dir/$qt_arch" || exit 1
-    cp libcrypto.a libssl.a "../$version_out_dir/$qt_arch" || exit 1
-    ln -s "../$version_out_dir/$qt_arch/libcrypto_1_1.so" "../$version_out_dir/$qt_arch/libcrypto.so"
-    ln -s "../$version_out_dir/$qt_arch/libssl_1_1.so" "../$version_out_dir/$qt_arch/libssl.so"
-    ln -s "../$version_out_dir/include" "../$version_out_dir/$qt_arch/include"
+    make -j$(nproc) SHLIB_VERSION_NUMBER= SHLIB_EXT=_1_1.so build_libs 2>&1 1>>${log_file} \
+        | tee -a ${log_file} || exit 1
 }
 
 build_ssl_3() {
     # Qt 6.5.0+ is using OpenSSL 3.1.x but the library is suffixed with _3.so
-    version_out_dir=$1
-    qt_arch=$2
-    log_file=$3
+    output_dir=$1
+    log_file=$2
 
     echo "Building..."
-    make -j$(nproc) SHLIB_VERSION_NUMBER= build_libs 2>&1 1>>${log_file} | tee -a ${log_file} || exit 1
-    llvm-strip --strip-all libcrypto.so
-    llvm-strip --strip-all libssl.so
+    make -j$(nproc) SHLIB_VERSION_NUMBER= build_libs 2>&1 1>>${log_file} \
+        | tee -a ${log_file} || exit 1
 
-    out_path="../$version_out_dir/$qt_arch"
-    cp libcrypto.a libssl.a "${out_path}" || exit 1
-    cp libcrypto.so "${out_path}/libcrypto_3.so" || exit 1
-    cp libssl.so "${out_path}/libssl_3.so" || exit 1
-    ln -s "${out_path}/libcrypto_3.so" "${out_path}/libcrypto.so"
-    ln -s "${out_path}/libssl_3.so" "${out_path}/libssl.so"
-    ln -s "../$version_out_dir/include" "../$version_out_dir/$qt_arch/include"
+    mv libcrypto.so libcrypto_3.so
+    mv libssl.so libssl_3.so
 
-    pushd ${out_path} || exit 1
+    # SHLIB_EXT is no longer supported for OpenSSL, so we need to manually
+    # use patchelf to modify SONAME and NEEDED sections to set the correct
+    # suffix for the shared libraries.
+    # See https://github.com/openssl/openssl/issues/20854
     patchelf --set-soname libcrypto_3.so libcrypto_3.so || exit 1
     patchelf --set-soname libssl_3.so libssl_3.so || exit 1
     patchelf --replace-needed libcrypto.so libcrypto_3.so libssl_3.so || exit 1
-    popd
 }
 
-for param in "${params[@]}"; do
-    if [ "${param}" ]; then
-        rm -fr "${param}"
-        mkdir "${param}"
-        pushd "${param}"
-    fi
-    for ssl_version in "${!ssl_versions_ndk[@]}"; do
-        download_ssl_version $ssl_version
+strip_libs() {
+    lib_suffix=$1
 
-        for version_out_dir in "${!ssl_versions_output_dir[@]}"; do
-            if [[ $ssl_version != ${ssl_versions_output_dir[$version_out_dir]} ]]; then
-                continue
+    llvm-strip --strip-all libcrypto_$lib_suffix.so
+    llvm-strip --strip-all libssl_$lib_suffix.so
+}
+
+copy_build_artefacts() {
+    lib_suffix=$1
+    output_dir=$2
+
+    cp libcrypto_$lib_suffix.so "$output_dir/libcrypto_$lib_suffix.so" || exit 1
+    cp libssl_$lib_suffix.so "$output_dir/libssl_$lib_suffix.so" || exit 1
+    cp libcrypto.a libssl.a "$output_dir" || exit 1
+
+    # Create relative non-versioned symlinks
+    ln -s "libcrypto_$lib_suffix.so" "$output_dir/libcrypto.so"
+    ln -s "libssl_$lib_suffix.so" "$output_dir/libssl.so"
+    ln -s "../include" "$output_dir/include"
+}
+
+[[ -e "$BUILD_DIR" ]] && rm -fr "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
+pushd "$BUILD_DIR"
+
+for build_type in "${build_types[@]}"; do
+    if [[ "${build_type}" ]]; then
+        mkdir -p $build_type
+        pushd $build_type
+    fi
+    for ssl_version in "${ssl_versions[@]}"; do
+        ndk=$(get_ssl_ndk_version $ssl_version)
+        version_build_dir=$(get_ssl_build_dir $ssl_version)
+        mkdir -p $version_build_dir
+        pushd $version_build_dir
+
+        download_ssl_version $ssl_version $BUILD_DIR
+
+        for arch in "${architectures[@]}"; do
+            qt_arch=$(get_qt_arch $arch)
+
+            extract_package $ssl_version $BUILD_DIR $version_build_dir
+            mv "openssl-$ssl_version" "openssl-$ssl_version-$arch"
+            pushd "openssl-$ssl_version-$arch" || exit 1
+
+            log_file="build_${arch}_${ssl_version}.log"
+            configure_ssl ${ssl_version} ${arch} "${ndk}" "${build_type}" \
+                ${version_build_dir} ${log_file}
+
+            # Delete existing build artefacts
+            output_dir="$OUTPUT_ROOT/$build_type/$version_build_dir/$qt_arch"
+            rm -fr "$output_dir"
+            mkdir -p "$output_dir" || exit 1
+
+            # Copy the include dir only once since since it's the same for all abis
+            if [ ! -d "$output_dir/../include" ]; then
+                cp -a include "$output_dir/../" || exit 1
+
+                # Clean include folder
+                find "$output_dir/../" -name "*.in" -delete
+                find "$output_dir/../" -name "*.def" -delete
             fi
-            echo "Build $ssl_version"
-            for arch in "${!architectures[@]}"; do
-                qt_arch="${architectures[$arch]}"
-                extract_package $qt_arch $version_out_dir $ssl_version
-                pushd "openssl-$ssl_version" || exit 1
 
-                log_file="build_${arch}_${ssl_version}.log"
-                ndk="${ssl_versions_ndk[$ssl_version]}"
-                configure_ssl "${ndk}" "${param}" ${ssl_version} ${version_out_dir} ${arch} ${log_file}
+            case $version_build_dir in
+                ssl_1.1)
+                    build_ssl_1_1 ${output_dir} ${log_file}
+                    suffix="1_1"
+                    ;;
+                ssl_3)
+                    build_ssl_3 ${output_dir} ${log_file}
+                    suffix="3"
+                    ;;
+                *)
+                    echo "Unhandled OpenSSL version $version_build_dir"
+                    exit 1
+                    ;;
+            esac
 
-                if [ "$arch" == "arm64" ] && [ ! -d "../$version_out_dir/include/openssl" ]; then
-                    cp -a include "../$version_out_dir" || exit 1
-                fi
+            strip_libs "$suffix"
+            copy_build_artefacts "$suffix" ${output_dir}
+            
 
-                case $version_out_dir in
-                    ssl_1.1)
-                        build_ssl_1_1 ${version_out_dir} ${qt_arch} ${log_file}
-                        ;;
-                    ssl_3)
-                        build_ssl_3 ${version_out_dir} ${qt_arch} ${log_file}
-                        ;;
-                    *)
-                        echo "Unhandled OpenSSL version $version_out_dir"
-                        exit 1
-                        ;;
-                esac
-
-                
-                popd
-            done
+            popd
         done
-        rm -fr "openssl-$ssl_version"
-        rm "openssl-$ssl_version.tar.gz"
-    done
-    if [ "${param}" ]; then
         popd
-    fi
+    done
+    [[ "${build_type}" ]] && popd
 done
-
-# Clean include folder
-find . -name "*.in" -delete
-find . -name "*.def" -delete
