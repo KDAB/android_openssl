@@ -2,7 +2,6 @@
 
 ## Prerequisites
 ## The script supports builds from Linux and macOS.
-## The 'patchelf' command is required for OpenSSL 3.
 ## set BUILD_DIR and OUTPUT_ROOT variables to use custom build and output paths.
 ## Set NDK_ROOT_PREFIX to use custom Android NDK root path that contains various
 ## NDK versions.
@@ -97,8 +96,7 @@ configure_ssl() {
     arch=$2
     ndk=$3
     build_type=$4
-    output_dir=$5
-    log_file=$6
+    log_file=$5
 
     nkd_path="$NDK_ROOT_PREFIX/$ndk"
 
@@ -119,12 +117,39 @@ configure_ssl() {
         fi
     done
 
-    case $output_dir in
-    ssl_1.1)
+    case $ssl_version in
+    1.1.*)
         ANDROID_API=21
+        # use suffix _1_1.so with OpenSSL 1.1.x (up to Qt 6.4)
+        patch -p0 <<EOF
+--- Configurations/15-android.conf
++++ Configurations/15-android.conf
+@@ -190,6 +190,8 @@
+         bn_ops           => sub { android_ndk()->{bn_ops} },
+         bin_cflags       => "-pie",
+         enable           => [ ],
++        shared_extension => ".so",
++        shlib_variant => "_1_1",
+     },
+     "android-arm" => {
+         ################################################################
+EOF
         ;;
-    ssl_3)
+    3.*)
         ANDROID_API=23
+        # use suffix _3.so with OpenSSL 3.1.x (Qt 6.5.0 and above)
+        patch -p0 <<EOF
+--- Configurations/15-android.conf
++++ Configurations/15-android.conf
+@@ -192,6 +192,7 @@
+         bin_lflags       => "-pie",
+         enable           => [ ],
+         shared_extension => ".so",
++        shlib_variant => "_3",
+     },
+     "android-arm" => {
+         ################################################################
+EOF
         ;;
     esac
 
@@ -137,55 +162,29 @@ configure_ssl() {
     make depend
 }
 
-build_ssl_1_1() {
-    # Qt up to 6.4 is using OpenSSL 1.1.x but the library is suffixed with _1_1.so
-    output_dir=$1
-    log_file=$2
-
-    echo "Building..."
-    make -j$(nproc) SHLIB_VERSION_NUMBER= SHLIB_EXT=_1_1.so build_libs 2>&1 1>>${log_file} \
-        | tee -a ${log_file} || exit 1
-}
-
-build_ssl_3() {
-    # Qt 6.5.0+ is using OpenSSL 3.1.x but the library is suffixed with _3.so
-    output_dir=$1
-    log_file=$2
+build_ssl() {
+    log_file=$1
 
     echo "Building..."
     make -j$(nproc) SHLIB_VERSION_NUMBER= build_libs 2>&1 1>>${log_file} \
         | tee -a ${log_file} || exit 1
-
-    mv libcrypto.so libcrypto_3.so
-    mv libssl.so libssl_3.so
-
-    # SHLIB_EXT is no longer supported for OpenSSL, so we need to manually
-    # use patchelf to modify SONAME and NEEDED sections to set the correct
-    # suffix for the shared libraries.
-    # See https://github.com/openssl/openssl/issues/20854
-    patchelf --set-soname libcrypto_3.so libcrypto_3.so || exit 1
-    patchelf --set-soname libssl_3.so libssl_3.so || exit 1
-    patchelf --replace-needed libcrypto.so libcrypto_3.so libssl_3.so || exit 1
 }
 
 strip_libs() {
-    lib_suffix=$1
-
-    llvm-strip --strip-all libcrypto_$lib_suffix.so
-    llvm-strip --strip-all libssl_$lib_suffix.so
+    find . -name "libcrypto_*.so" -exec llvm-strip --strip-all {} \;
+    find . -name "libssl_*.so" -exec llvm-strip --strip-all {} \;
 }
 
 copy_build_artefacts() {
-    lib_suffix=$1
-    output_dir=$2
+    output_dir=$1
 
-    cp libcrypto_$lib_suffix.so "$output_dir/libcrypto_$lib_suffix.so" || exit 1
-    cp libssl_$lib_suffix.so "$output_dir/libssl_$lib_suffix.so" || exit 1
+    cp libcrypto_*.so "$output_dir/" || exit 1
+    cp libssl_*.so "$output_dir/" || exit 1
     cp libcrypto.a libssl.a "$output_dir" || exit 1
 
     # Create relative non-versioned symlinks
-    ln -s "libcrypto_$lib_suffix.so" "$output_dir/libcrypto.so"
-    ln -s "libssl_$lib_suffix.so" "$output_dir/libssl.so"
+    ln -s $(find . -name "libcrypto_*.so" -exec basename {} \;) "${output_dir}/libcrypto.so"
+    ln -s $(find . -name "libssl_*.so" -exec basename {} \;) "${output_dir}/libssl.so"
     ln -s "../include" "$output_dir/include"
 }
 
@@ -214,8 +213,7 @@ for build_type in "${build_types[@]}"; do
             pushd "openssl-$ssl_version-$arch" || exit 1
 
             log_file="build_${arch}_${ssl_version}.log"
-            configure_ssl ${ssl_version} ${arch} "${ndk}" "${build_type}" \
-                ${version_build_dir} ${log_file}
+            configure_ssl ${ssl_version} ${arch} "${ndk}" "${build_type}" ${log_file}
 
             # Delete existing build artefacts
             output_dir="$OUTPUT_ROOT/$build_type/$version_build_dir/$qt_arch"
@@ -231,23 +229,9 @@ for build_type in "${build_types[@]}"; do
                 find "$output_dir/../" -name "*.def" -delete
             fi
 
-            case $version_build_dir in
-                ssl_1.1)
-                    build_ssl_1_1 ${output_dir} ${log_file}
-                    suffix="1_1"
-                    ;;
-                ssl_3)
-                    build_ssl_3 ${output_dir} ${log_file}
-                    suffix="3"
-                    ;;
-                *)
-                    echo "Unhandled OpenSSL version $version_build_dir"
-                    exit 1
-                    ;;
-            esac
-
-            strip_libs "$suffix"
-            copy_build_artefacts "$suffix" ${output_dir}
+            build_ssl ${log_file}
+            strip_libs
+            copy_build_artefacts ${output_dir}
             
 
             popd

@@ -58,4 +58,3 @@ are correct for your environment.
 ### Build Prerequisites
 
 The build script was tested against `bash` and `zsh` on Linux and macOS.
-The `patchelf` command is required when building for OpenSSL 3.
