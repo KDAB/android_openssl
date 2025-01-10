@@ -1,26 +1,30 @@
 function(add_android_openssl_libraries)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(ssl_root_path ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/no-asm)
+    set(SSL_ROOT_PATH ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/no-asm)
   else()
-    set(ssl_root_path ${CMAKE_CURRENT_FUNCTION_LIST_DIR})
+    set(SSL_ROOT_PATH ${CMAKE_CURRENT_FUNCTION_LIST_DIR})
   endif()
 
   if(Qt6_VERSION VERSION_GREATER_EQUAL 6.5.0)
-    if(NOT OPENSSL_ROOT_DIR)
-      set(OPENSSL_ROOT_DIR ${SSL_ROOT_PATH}/ssl_3/${CMAKE_ANDROID_ARCH_ABI})
-    endif()
     list(APPEND android_extra_libs
-         ${ssl_root_path}/ssl_3/${CMAKE_ANDROID_ARCH_ABI}/libcrypto_3.so
-         ${ssl_root_path}/ssl_3/${CMAKE_ANDROID_ARCH_ABI}/libssl_3.so)
+         ${SSL_ROOT_PATH}/ssl_3/${CMAKE_ANDROID_ARCH_ABI}/libcrypto_3.so
+         ${SSL_ROOT_PATH}/ssl_3/${CMAKE_ANDROID_ARCH_ABI}/libssl_3.so)
+    set(OPENSSL_CRYPTO_LIBRARY ${SSL_ROOT_PATH}/ssl_3/${CMAKE_ANDROID_ARCH_ABI}/libcrypto_3.so)
+    set(OPENSSL_SSL_LIBRARY ${SSL_ROOT_PATH}/ssl_3/${CMAKE_ANDROID_ARCH_ABI}/libssl_3.so)
+    set(OPENSSL_INCLUDE_DIR ${SSL_ROOT_PATH}/ssl_3/include)
   else()
-    if(NOT OPENSSL_ROOT_DIR)
-      set(OPENSSL_ROOT_DIR ${SSL_ROOT_PATH}/ssl_1.1/${CMAKE_ANDROID_ARCH_ABI})
-    endif()
     list(APPEND android_extra_libs
-         ${ssl_root_path}/ssl_1.1/${CMAKE_ANDROID_ARCH_ABI}/libcrypto_1_1.so
-         ${ssl_root_path}/ssl_1.1/${CMAKE_ANDROID_ARCH_ABI}/libssl_1_1.so)
+         ${SSL_ROOT_PATH}/ssl_1.1/${CMAKE_ANDROID_ARCH_ABI}/libcrypto_1_1.so
+         ${SSL_ROOT_PATH}/ssl_1.1/${CMAKE_ANDROID_ARCH_ABI}/libssl_1_1.so)
+    set(OPENSSL_CRYPTO_LIBRARY ${SSL_ROOT_PATH}/ssl_1.1/${CMAKE_ANDROID_ARCH_ABI}/libcrypto_1_1.so)
+    set(OPENSSL_SSL_LIBRARY ${SSL_ROOT_PATH}/ssl_1.1/${CMAKE_ANDROID_ARCH_ABI}/libssl_1_1.so)
+    set(OPENSSL_INCLUDE_DIR ${SSL_ROOT_PATH}/ssl_1.1/include)
   endif()
 
   set_target_properties(${ARGN} PROPERTIES QT_ANDROID_EXTRA_LIBS
                                            "${android_extra_libs}")
+  find_package(OpenSSL REQUIRED)
+  foreach(TARGET ${ARGN})
+    target_link_libraries(${TARGET} PUBLIC OpenSSL::OpenSSL)
+  endforeach()
 endfunction()
