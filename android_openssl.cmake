@@ -15,17 +15,15 @@ function(add_android_openssl_libraries)
     set(OPENSSL_INCLUDE_DIR ${ssl_root_path}/ssl_1.1/include)
   endif()
 
-  find_package(OpenSSL REQUIRED GLOBAL)
+  find_package(OpenSSL REQUIRED)
   foreach(TARGET ${ARGN})
     if(TARGET ${TARGET})
-      set_property(
-        TARGET ${TARGET}
-        APPEND
-        PROPERTY QT_ANDROID_EXTRA_LIBS ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY}
+      set_property(TARGET ${TARGET} APPEND PROPERTY
+        QT_ANDROID_EXTRA_LIBS ${OPENSSL_CRYPTO_LIBRARY} ${OPENSSL_SSL_LIBRARY}
       )
       target_link_libraries(${TARGET} PUBLIC OpenSSL::SSL OpenSSL::Crypto)
     else()
-      message(WARNING "Invoked add_android_openssl_libraries on a non-existing target (${TARGET}), ignoring.")
+      message(WARNING "Invoked add_android_openssl_libraries() on a non-existing target (${TARGET}), ignoring.")
     endif()
   endforeach()
 endfunction()
