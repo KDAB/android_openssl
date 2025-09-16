@@ -153,11 +153,22 @@ EOF
         ;;
     esac
 
-    config_params=( "${build_type}" "shared" "android-${arch}"
-                    "-U__ANDROID_API__" "-D__ANDROID_API__=${ANDROID_API}" )
-    echo "Configuring OpenSSL $ssl_version with NDK $ndk"
-    echo "Configure parameters: ${config_params[@]}"
+    echo "Configuring OpenSSL $ssl_version for ABI $arch with NDK $ndk"
+    config_params=()
 
+    if [ -n "$build_type" ]; then
+        config_params+=( "${build_type}" )
+    fi
+
+    config_params+=( "shared" "android-${arch}" "-U__ANDROID_API__"
+                     "-D__ANDROID_API__=${ANDROID_API}" )
+
+    if [ "$arch" = "arm64" -o "$arch" = "x86_64" ]; then
+	    echo "Configuring OpenSSL to 16KB page sizes"
+        config_params+=( "-Wl,-z,max-page-size=16384" "-Wl,-z,common-page-size=16384" )
+    fi
+
+    echo "Configure parameters: ${config_params[@]}"
     ./Configure "${config_params[@]}" 2>&1 1>${log_file} | tee -a ${log_file} || exit 1
     make depend
 }
@@ -232,7 +243,7 @@ for build_type in "${build_types[@]}"; do
             build_ssl ${log_file}
             strip_libs
             copy_build_artefacts ${output_dir}
-            
+
 
             popd
         done
