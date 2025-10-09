@@ -1,5 +1,5 @@
 # Android OpenSSL support for Qt
-OpenSSL scripts and binaries for Android (useful for Qt Android apps)
+OpenSSL scripts and binaries - supports Qt for Android apps.
 
 In this repo you can find the prebuilt OpenSSL libs for Android, a QMake include project `.pri` file that can be used integrated with Qt projects, and a `.cmake` file for CMake based projects.
 
@@ -50,10 +50,10 @@ endif()
 
 ## Build Script
 
-The build script `build_ssl.sh` can be used to rebuild the OpenSSL libraries. Since specific
-versions might depend or work better with specific NDK versions, the OpenSSL/NDK version
-combinations are defined in the script. Before running the script, check that the NDK paths
-are correct for your environment.
+You may use `build_ssl.sh` to rebuild OpenSSL libraries. OpenSSL/NDK version
+pairs are predefined in the script to ensure compatibility with specific Qt
+versions. Make sure the NDK paths and versions match your setup before running
+it.
 
 ### Build Prerequisites
 
