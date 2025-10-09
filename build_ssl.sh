@@ -20,7 +20,7 @@ if [ -z "$NDK_ROOT_PREFIX" ]; then
     fi
 fi
 
-ssl_versions=("1.1.1u" "3.1.1")
+ssl_versions=("1.1.1w" "3.1.8")
 architectures=("arm64" "arm" "x86_64" "x86")
 build_types=('' 'no-asm')
 
