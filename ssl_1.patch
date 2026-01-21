@@ -1,0 +1,38 @@
+--- Configurations/15-android.conf
++++ Configurations/15-android.conf
+@@ -190,6 +190,8 @@
+         bn_ops           => sub { android_ndk()->{bn_ops} },
+         bin_cflags       => "-pie",
+         enable           => [ ],
++        shared_extension => ".so",
++        shlib_variant => "_1_1",
+     },
+     "android-arm" => {
+         ################################################################
+--- util/mkdef.pl
++++ util/mkdef.pl
+@@ -1221,13 +1221,13 @@
+ 						if ($symversion ne $prevsymversion) {
+ 							if ($prevsymversion ne "") {
+ 								if ($prevprevsymversion ne "") {
+-									print OUT "} OPENSSL${SO_VARIANT}_"
++									print OUT "} OPENSSL_"
+ 												."$prevprevsymversion;\n\n";
+ 								} else {
+ 									print OUT "};\n\n";
+ 								}
+ 							}
+-							print OUT "OPENSSL${SO_VARIANT}_$symversion {\n    global:\n";
++							print OUT "OPENSSL_$symversion {\n    global:\n";
+ 							$prevprevsymversion = $prevsymversion;
+ 							$prevsymversion = $symversion;
+ 						}
+@@ -1278,7 +1278,7 @@
+ 	} while ($linux && $thisversion ne $currversion);
+ 	if ($linux) {
+ 		if ($prevprevsymversion ne "") {
+-			print OUT "    local: *;\n} OPENSSL${SO_VARIANT}_$prevprevsymversion;\n\n";
++			print OUT "    local: *;\n} OPENSSL_$prevprevsymversion;\n\n";
+ 		} else {
+ 			print OUT "    local: *;\n};\n\n";
+ 		}

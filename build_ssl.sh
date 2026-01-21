@@ -24,6 +24,8 @@ ssl_versions=("1.1.1w" "3.1.8")
 architectures=("arm64" "arm" "x86_64" "x86")
 build_types=('' 'no-asm')
 
+SCRIPT_PARENT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" && pwd)"
+
 get_qt_arch() {
     # takes OpenSSL arch as argument
     case $1 in
@@ -51,6 +53,17 @@ get_ssl_build_dir() {
     *)
         echo $1
         ;;
+    esac
+}
+
+get_ssl_patch_file_name() {
+    case $1 in
+        1.1.*) echo "ssl_1.patch" ;;
+        3.*) echo "ssl_3.patch" ;;
+        *) 
+            echo "Unhandled SSL version argument '$1'"
+            exit 1  
+            ;;
     esac
 }
 
@@ -96,7 +109,8 @@ configure_ssl() {
     arch=$2
     ndk=$3
     build_type=$4
-    log_file=$5
+    patch_file=$5
+    log_file=$6
 
     nkd_path="$NDK_ROOT_PREFIX/$ndk"
 
@@ -118,40 +132,19 @@ configure_ssl() {
     done
 
     case $ssl_version in
-    1.1.*)
-        ANDROID_API=21
-        # use suffix _1_1.so with OpenSSL 1.1.x (up to Qt 6.4)
-        patch -p0 <<EOF
---- Configurations/15-android.conf
-+++ Configurations/15-android.conf
-@@ -190,6 +190,8 @@
-         bn_ops           => sub { android_ndk()->{bn_ops} },
-         bin_cflags       => "-pie",
-         enable           => [ ],
-+        shared_extension => ".so",
-+        shlib_variant => "_1_1",
-     },
-     "android-arm" => {
-         ################################################################
-EOF
-        ;;
-    3.*)
-        ANDROID_API=23
-        # use suffix _3.so with OpenSSL 3.1.x (Qt 6.5.0 and above)
-        patch -p0 <<EOF
---- Configurations/15-android.conf
-+++ Configurations/15-android.conf
-@@ -192,6 +192,7 @@
-         bin_lflags       => "-pie",
-         enable           => [ ],
-         shared_extension => ".so",
-+        shlib_variant => "_3",
-     },
-     "android-arm" => {
-         ################################################################
-EOF
-        ;;
+        1.1.*) ANDROID_API=21 ;;
+        3.*) ANDROID_API=23 ;;
     esac
+
+    # Qt expects OpenSSL binaries that have the filename 'libssl_3.so'
+    # instead of the usual 'libssl.so'. We configure OpenSSL to compile
+    # such a variant by tweaking the SHLIB_VARIANT. However, OpenSSL
+    # has built-in logic that will cause it to adjust the symbollink
+    # version tags accordingly. For Qt binaries, we do NOT want this
+    # behavior. The following code is a workaround that patches OpenSSL
+    # source code to set the shlib_variant, and then disables the
+    # versioning behavior in the relevant Perl script.
+    patch < "$patch_file"
 
     echo "Configuring OpenSSL $ssl_version for ABI $arch with NDK $ndk"
     config_params=()
@@ -211,6 +204,8 @@ for build_type in "${build_types[@]}"; do
     for ssl_version in "${ssl_versions[@]}"; do
         ndk=$(get_ssl_ndk_version $ssl_version)
         version_build_dir=$(get_ssl_build_dir $ssl_version)
+        ssl_patch_file="${SCRIPT_PARENT_DIR}/$(get_ssl_patch_file_name $ssl_version)"
+
         mkdir -p $version_build_dir
         pushd $version_build_dir
 
@@ -224,7 +219,7 @@ for build_type in "${build_types[@]}"; do
             pushd "openssl-$ssl_version-$arch" || exit 1
 
             log_file="build_${arch}_${ssl_version}.log"
-            configure_ssl ${ssl_version} ${arch} "${ndk}" "${build_type}" ${log_file}
+            configure_ssl ${ssl_version} ${arch} "${ndk}" "${build_type}" "${ssl_patch_file}" "${log_file}"
 
             # Delete existing build artefacts
             output_dir="$OUTPUT_ROOT/$build_type/$version_build_dir/$qt_arch"
