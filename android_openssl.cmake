@@ -18,13 +18,13 @@ if(NOT TARGET OpenSSL::Crypto OR NOT TARGET OpenSSL::SSL)
     set(OPENSSL_LIB_DIR ${ssl_root_path}/${ssl_version_dir}/${CMAKE_ANDROID_ARCH_ABI})
     set(OPENSSL_INCLUDE_DIR ${ssl_root_path}/${ssl_version_dir}/include)
 
-    add_library(OpenSSL::Crypto SHARED IMPORTED)
+    add_library(OpenSSL::Crypto SHARED IMPORTED GLOBAL)
     set_target_properties(OpenSSL::Crypto PROPERTIES
         IMPORTED_LOCATION "${OPENSSL_LIB_DIR}/${libcrypto}"
         INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
     )
 
-    add_library(OpenSSL::SSL SHARED IMPORTED)
+    add_library(OpenSSL::SSL SHARED IMPORTED GLOBAL)
     set_target_properties(OpenSSL::SSL PROPERTIES
         IMPORTED_LOCATION "${OPENSSL_LIB_DIR}/${libssl}"
         INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
